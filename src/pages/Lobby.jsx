@@ -13,6 +13,8 @@ function Lobby() {
     const [room, setRoom] = useState(null);
     const [currentUser, setCurrentUser] = useState(auth.currentUser);
     const [copied, setCopied] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const unsubAuth = auth.onAuthStateChanged(user => {
@@ -56,10 +58,11 @@ function Lobby() {
     const handleStartGame = async () => {
         if (!isHost) return;
         try {
-            await startGame(roomId, room.players);
-        } catch (error) {
-            console.error("Failed to start game:", error);
-            alert(error.message);
+            setLoading(true);
+            await startGame(roomId, room.players, room.lastMaskedManId); // Pass last spy ID
+        } catch (err) {
+            setError(err.message);
+            setLoading(false);
         }
     };
 
@@ -100,6 +103,11 @@ function Lobby() {
             </header>
 
             <div className="max-w-2xl mx-auto relative z-10">
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-xl mb-6 text-center">
+                        {error}
+                    </div>
+                )}
                 <div className="text-center mb-8">
                     <p className="text-slate-400 uppercase tracking-wider text-xs font-bold mb-2">Room Code</p>
                     <div

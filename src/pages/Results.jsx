@@ -4,14 +4,16 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { resetToLobby } from "../services/gameService";
 import { leaveRoom } from "../services/roomService";
-import { motion } from 'framer-motion';
-import { Trophy, Home, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Home, AlertTriangle, CheckCircle, HelpCircle, ChevronDown } from 'lucide-react';
 
 function Results() {
     const { roomId } = useParams();
     const navigate = useNavigate();
     const [room, setRoom] = useState(null);
     const [currentUser, setCurrentUser] = useState(auth.currentUser);
+    const [activeTab, setActiveTab] = useState('report');
+    const [showVotes, setShowVotes] = useState(false); // 'report' or 'leaderboard'
 
     // Auth Subscription
     useEffect(() => {
@@ -56,10 +58,13 @@ function Results() {
     const agentsWon = winner === 'AGENTS';
     const isHost = room.hostId === currentUser?.uid;
     const playerCount = Object.keys(room.players || {}).length;
+    const spyWinPoints = (playerCount - 1) * 10;
+
+
 
     const handlePlayAgain = async () => {
         try {
-            await resetToLobby(roomId);
+            await resetToLobby(roomId, maskedManId); // Pass current spy ID
         } catch (error) {
             alert(error.message);
         }
@@ -100,36 +105,135 @@ function Results() {
                 transition={{ delay: 0.3 }}
                 className="w-full max-w-md space-y-4 relative z-10"
             >
-                {/* Reveal Cards */}
-                <div className="bg-slate-800/80 backdrop-blur border border-white/10 rounded-2xl p-6 shadow-xl">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-                        <div className="flex items-center">
-                            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center mr-3">
-                                <AlertTriangle className="text-red-500" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-xs text-slate-400 uppercase font-bold">The Spy</p>
-                                <p className="text-white font-bold text-lg">{maskedManName}</p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Tab Switcher */}
+                <div className="flex bg-slate-800/50 p-1 rounded-xl mb-6 border border-white/5">
+                    <button
+                        onClick={() => setActiveTab('report')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${activeTab === 'report'
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white'
+                            }`}
+                    >
+                        Mission Report
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('leaderboard')}
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all ${activeTab === 'leaderboard'
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white'
+                            }`}
+                    >
+                        Leaderboard
+                    </button>
+                </div>
 
-                    <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-                        <div className="flex items-center">
-                            <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
-                                <HelpCircle className="text-slate-400" />
+                {/* Content Area */}
+                <div className="min-h-[300px]">
+                    {activeTab === 'report' ? (
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="bg-slate-800/80 backdrop-blur border border-white/10 rounded-2xl p-6 shadow-xl"
+                        >
+                            <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                                <div className="flex items-center">
+                                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center mr-3">
+                                        <AlertTriangle className="text-red-500" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs text-slate-400 uppercase font-bold">The Spy</p>
+                                        <p className="text-white font-bold text-lg">{maskedManName}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <p className="text-xs text-slate-400 uppercase font-bold">Voted Out</p>
-                                <p className="text-white font-bold text-lg">{exiledName}</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="bg-indigo-900/30 rounded-xl p-4 text-center border border-indigo-500/30">
-                        <p className="text-indigo-300 text-sm uppercase tracking-widest font-bold mb-1">Secret Word</p>
-                        <p className="text-3xl font-black text-white">{secretWord}</p>
-                    </div>
+                            <div className="border-b border-white/5 pb-4 mb-4">
+                                <div className="flex items-center mb-3">
+                                    <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
+                                        <HelpCircle className="text-slate-400" size={16} />
+                                    </div>
+                                    <p className="text-xs text-slate-400 uppercase font-bold">Voting Results</p>
+                                </div>
+
+                                <div className="bg-slate-900/50 rounded-lg p-2 space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                                    {Object.entries(
+                                        Object.entries(room.votes || {}).reduce((acc, [voterId, targetId]) => {
+                                            if (!acc[targetId]) acc[targetId] = [];
+                                            acc[targetId].push(voterId);
+                                            return acc;
+                                        }, {})
+                                    )
+                                        .sort(([, a], [, b]) => b.length - a.length)
+                                        .map(([targetId, voters]) => (
+                                            <div key={targetId} className="flex flex-col bg-white/5 rounded-lg p-2">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`font-bold text-sm ${targetId === exiledId ? 'text-red-400' : 'text-slate-200'}`}>
+                                                        {room.players[targetId]?.displayName || 'Unknown'}
+                                                        {targetId === exiledId && " (Exiled)"}
+                                                    </span>
+                                                    <span className="font-mono font-bold text-xs text-slate-400 bg-black/20 px-2 py-0.5 rounded">
+                                                        {voters.length}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {voters.map(voterId => (
+                                                        <span key={voterId} className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+                                                            {room.players[voterId]?.displayName || 'Unknown'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    {Object.keys(room.votes || {}).length === 0 && (
+                                        <p className="text-center text-slate-500 text-xs py-2">No votes were cast</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-900/30 rounded-xl p-4 text-center border border-indigo-500/30">
+                                <p className="text-indigo-300 text-sm uppercase tracking-widest font-bold mb-1">Secret Word</p>
+                                <p className="text-3xl font-black text-white">{secretWord}</p>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="bg-slate-800/80 backdrop-blur border border-white/10 rounded-2xl p-6 shadow-xl"
+                        >
+                            <h3 className="text-indigo-300 text-sm uppercase tracking-widest font-bold mb-4 text-center flex items-center justify-center">
+                                <Trophy size={16} className="mr-2" /> Leaderboard
+                            </h3>
+                            <div className="space-y-3">
+                                {Object.values(room.players || {})
+                                    .sort((a, b) => (b.score || 0) - (a.score || 0))
+                                    .map((player, index) => (
+                                        <div key={player.uid} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5">
+                                            <div className="flex items-center">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mr-3 ${index === 0 ? 'bg-yellow-500 text-slate-900' :
+                                                    index === 1 ? 'bg-slate-300 text-slate-900' :
+                                                        index === 2 ? 'bg-amber-600 text-slate-100' :
+                                                            'bg-slate-700 text-slate-300'
+                                                    }`}>
+                                                    {index + 1}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-white text-sm">{player.displayName}</p>
+                                                    {((agentsWon && player.uid !== maskedManId) || (!agentsWon && player.uid === maskedManId)) && (
+                                                        <p className="text-[10px] text-green-400 font-mono uppercase">+ {agentsWon ? 10 : spyWinPoints} pts</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="font-mono font-bold text-indigo-300">
+                                                {player.score || 0}
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">

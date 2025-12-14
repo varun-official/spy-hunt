@@ -46,7 +46,7 @@ function Game() {
         }
     }, [room, currentUser, roomId]);
 
-    // Timer Logic
+    // Timer Logic & Haptics
     useEffect(() => {
         if (!room?.phaseEndTime) return;
         const interval = setInterval(() => {
@@ -55,12 +55,34 @@ function Game() {
             const diff = Math.ceil((end - now) / 1000);
             setTimeLeft(diff > 0 ? diff : 0);
 
+            // Haptic & Visual Feedback for Low Time
+            if (diff <= 5 && diff > 0) {
+                if (navigator.vibrate) navigator.vibrate(200);
+            }
+
             if (diff <= 0 && room.hostId === currentUser.uid && room.status === 'clue') {
                 nextTurn(roomId, room);
             }
         }, 1000);
         return () => clearInterval(interval);
     }, [room?.phaseEndTime, room?.status, room?.hostId, currentUser.uid, roomId]);
+
+    // Haptics for Game Events
+    useEffect(() => {
+        if (!room) return;
+        const turnLength = room.turnOrder ? room.turnOrder.length : 1;
+        const isMyTurn = room.turnOrder?.[room.currentTurnIndex % turnLength] === currentUser.uid;
+
+        // Vibrate on My Turn
+        if (room.status === 'clue' && isMyTurn) {
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
+
+        // Vibrate on Voting Phase
+        if (room.status === 'voting') {
+            if (navigator.vibrate) navigator.vibrate(500);
+        }
+    }, [room?.status, room?.currentTurnIndex, currentUser.uid, room?.turnOrder]);
 
     if (!room) return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div></div>;
     if (!currentUser) return null;
@@ -123,7 +145,7 @@ function Game() {
                                 </div>
                                 <h1 className="text-3xl font-black text-green-600 mb-2 text-center uppercase">Agent</h1>
                                 <p className="text-slate-500 text-center text-sm font-medium mb-4">The Secret Word is:</p>
-                                <div className="bg-slate-200 px-6 py-3 rounded-lg text-2xl font-bold text-slate-800 tracking-wider">
+                                <div className="bg-slate-200 px-6 py-3 rounded-lg text-2xl font-bold text-slate-800 tracking-wider text-center">
                                     {room.secretWord}
                                 </div>
                             </>
@@ -354,6 +376,18 @@ function Game() {
                 )}
                 {room.status === 'voting' && (
                     <motion.div key="voting" className="w-full">{renderVoting()}</motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Red Alert Overlay */}
+            <AnimatePresence>
+                {timeLeft <= 5 && room.status === 'clue' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0, 0.3, 0] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        className="fixed inset-0 bg-red-600 pointer-events-none z-0"
+                    />
                 )}
             </AnimatePresence>
         </div>
