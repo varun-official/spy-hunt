@@ -1,17 +1,17 @@
-# Suspect
+# Spy Hunt
 
-**Suspect** is a local multiplayer party game of social deduction, deception, and detective work. Best played with 3+ players in the same room.
+**Spy Hunt** (formerly Suspect) is a local multiplayer party game of social deduction, deception, and detective work. Best played with 3+ players in the same room.
 
 ## 🕵️ Game Rules
 
-1.  **The Setup**: All players join a lobby. One player is secretly assigned as the **Suspect**. Everyone else is a **Citizen**.
-2.  **The Secret**: Citizens receive a **Secret Word** (e.g., "Pizza"). The Suspect sees nothing but their role.
+1.  **The Setup**: All players join a lobby. One player is secretly assigned as the **Spy**. Everyone else is an **Agent**.
+2.  **The Secret**: Agents receive a **Secret Word** (e.g., "Pizza"). The Spy sees nothing but their role.
 3.  **The Clues**: Players take turns saying **one word** related to the Secret Word.
-    *   *Citizens* want to prove they know the word without giving it away entirely.
-    *   *The Suspect* must bluff and blend in, trying to guess the context from others' clues.
-4.  **The Vote**: After the round, players vote on who they think the Suspect is.
-    *   If the **Suspect** is voted out, **Citizens Win**.
-    *   If a **Citizen** is voted out, **Suspect Wins**.
+    *   *Agents* want to prove they know the word without giving it away entirely.
+    *   *The Spy* must bluff and blend in, trying to guess the context from others' clues.
+4.  **The Vote**: After the round, players vote on who they think the Spy is.
+    *   If the **Spy** is voted out, **Agents Win**.
+    *   If an **Agent** is voted out, **Spy Wins**.
 
 ## 🚀 Getting Started
 
@@ -37,8 +37,8 @@ VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/suspect.git
-    cd suspect
+    git clone https://github.com/yourusername/spy-hunt.git
+    cd spy-hunt
     ```
 
 2.  Install dependencies:

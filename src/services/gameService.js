@@ -2,9 +2,28 @@ import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 const WORDS = [
-    "Apple", "Guitar", "Sunshine", "Ocean", "Book", "Pizza",
-    "Robot", "Monkey", "Helicopter", "Doctor", "Diamond", "Vampire",
-    "Fireworks", "Telescope", "Mosquito", "Rainbow", "Coffee", "Pyramid"
+    // Sports Legends
+    "Messi", "Ronaldo", "Virat Kohli", "Rohit Sharma", "Serena Williams", "Usain Bolt", "Federer", "Dhoni", "Ricky Ponting", "Sunil Chhetri",
+    // Leaders & History
+    "Gandhi", "Narendra Modi", "Obama", "Rahul Gandhi", "Nirmala Sitharaman", "Abdul Kalam",
+    // Film Stars (India)
+    "Shah Rukh Khan", "Amitabh Bachchan", "Rajinikanth", "Salman Khan", "Deepika Padukone", "Priyanka Chopra", "Aamir Khan", "Allu Arjun", "Ranbir Kapoor",
+    // Famous Icons
+    "Donald Trump", "Shakespeare", "Elon Musk", "Bill Gates", "Steve Jobs",
+    // Global Companies
+    "Google", "Apple", "Tesla", "Nike", "Amazon", "Microsoft", "Coca-Cola", "McDonald's", "Disney", "Facebook",
+    // Pop Culture
+    "Harry Potter", "Batman", "Spiderman", "James Bond", "Pikachu",
+    // Places
+    "Nepal", "London", "New York", "China", "Dubai", "India", "Mars", "The Moon", "Antarctica", "Mount Everest",
+    // Foods
+    "Pizza", "Burger", "Sushi", "Chocolate", "Ice Cream", "Coffee", "Taco", "Pasta", "Popcorn", "Donut",
+    // Animals
+    "Lion", "Shark", "Eagle", "T-Rex", "Panda", "Elephant", "Blue Whale", "Cobra", "Spider", "Wolf",
+    // Objects
+    "iPhone", "Ferrari", "Guitar", "Camera", "Diamond", "Telescope", "Robot", "Rocket", "Crown",
+    // Concepts & Sci-Fi
+    "Internet", "Bitcoin", "Artificial Intelligence", "Time Travel", "Magic", "Ghost", "Alien", "Zombie", "Vampire", "Ninja"
 ];
 
 export const startGame = async (roomId, players) => {
