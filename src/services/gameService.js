@@ -141,7 +141,7 @@ export const calculateResults = async (roomId, roomState) => {
     // Prompt is simple. I'll just pick the first one with max votes.
 
     const isMaskedManFound = exiledId === roomState.maskedManId;
-    const winner = isMaskedManFound ? 'CITIZENS' : 'SUSPECT';
+    const winner = isMaskedManFound ? 'AGENTS' : 'SPY';
 
     await updateDoc(doc(db, "rooms", roomId), {
         status: 'results',

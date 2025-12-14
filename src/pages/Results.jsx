@@ -53,7 +53,7 @@ function Results() {
     const { winner, exiledId, maskedManId, secretWord } = room.result;
     const maskedManName = room.players[maskedManId]?.displayName || "Unknown";
     const exiledName = room.players[exiledId]?.displayName || "None";
-    const citizensWon = winner === 'CITIZENS';
+    const agentsWon = winner === 'AGENTS';
     const isHost = room.hostId === currentUser?.uid;
     const playerCount = Object.keys(room.players || {}).length;
 
@@ -84,14 +84,14 @@ function Results() {
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="relative z-10 text-center mb-8"
             >
-                <div className={`inline-flex p-6 rounded-full mb-6 shadow-2xl ${citizensWon ? 'bg-green-500 shadow-green-500/40' : 'bg-red-500 shadow-red-500/40'
+                <div className={`inline-flex p-6 rounded-full mb-6 shadow-2xl ${agentsWon ? 'bg-green-500 shadow-green-500/40' : 'bg-red-500 shadow-red-500/40'
                     }`}>
                     <Trophy size={64} className="text-white" />
                 </div>
                 <h1 className="text-5xl font-black text-white uppercase tracking-tighter mb-2 drop-shadow-lg">
-                    {citizensWon ? "Citizens Win!" : "Suspect Wins!"}
+                    {agentsWon ? "Agents Win!" : "Spy Wins!"}
                 </h1>
-                <p className="text-slate-400 font-medium">Mission Status: {citizensWon ? "Success" : "Failed"}</p>
+                <p className="text-slate-400 font-medium">Mission Status: {agentsWon ? "Success" : "Failed"}</p>
             </motion.div>
 
             <motion.div
@@ -108,7 +108,7 @@ function Results() {
                                 <AlertTriangle className="text-red-500" />
                             </div>
                             <div className="text-left">
-                                <p className="text-xs text-slate-400 uppercase font-bold">The Suspect</p>
+                                <p className="text-xs text-slate-400 uppercase font-bold">The Spy</p>
                                 <p className="text-white font-bold text-lg">{maskedManName}</p>
                             </div>
                         </div>

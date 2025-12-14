@@ -113,7 +113,7 @@ function Game() {
                                 <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                                     <AlertTriangle size={40} className="text-red-500" />
                                 </div>
-                                <h1 className="text-3xl font-black text-red-600 mb-2 text-center uppercase">Suspect</h1>
+                                <h1 className="text-3xl font-black text-red-600 mb-2 text-center uppercase">Spy</h1>
                                 <p className="text-slate-500 text-center text-sm font-medium">Blend in. Don't get caught.</p>
                             </>
                         ) : (
@@ -121,7 +121,7 @@ function Game() {
                                 <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
                                     <CheckCircle size={40} className="text-green-600" />
                                 </div>
-                                <h1 className="text-3xl font-black text-green-600 mb-2 text-center uppercase">Citizen</h1>
+                                <h1 className="text-3xl font-black text-green-600 mb-2 text-center uppercase">Agent</h1>
                                 <p className="text-slate-500 text-center text-sm font-medium mb-4">The Secret Word is:</p>
                                 <div className="bg-slate-200 px-6 py-3 rounded-lg text-2xl font-bold text-slate-800 tracking-wider">
                                     {room.secretWord}
@@ -133,20 +133,22 @@ function Game() {
                 </motion.div>
             </motion.div>
 
-            {room.hostId === currentUser.uid ? (
-                <button
-                    className="mt-8 bg-white text-indigo-900 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-50 transition-all flex items-center"
-                    onClick={() => nextTurn(roomId, room)}
-                >
-                    Start Mission
-                </button>
-            ) : (
-                <div className="mt-8 flex items-center text-indigo-200 bg-white/5 px-6 py-3 rounded-full">
-                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse mr-3"></div>
-                    Waiting for host...
-                </div>
-            )}
-        </motion.div>
+            {
+                room.hostId === currentUser.uid ? (
+                    <button
+                        className="mt-8 bg-white text-indigo-900 px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-50 transition-all flex items-center"
+                        onClick={() => nextTurn(roomId, room)}
+                    >
+                        Start Mission
+                    </button>
+                ) : (
+                    <div className="mt-8 flex items-center text-indigo-200 bg-white/5 px-6 py-3 rounded-full">
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse mr-3"></div>
+                        Waiting for host...
+                    </div>
+                )
+            }
+        </motion.div >
     );
 
     const renderClue = () => {
@@ -168,7 +170,7 @@ function Game() {
                     <div>
                         <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Your Identity</p>
                         <p className={`font-black uppercase ${isMaskedMan ? 'text-red-500' : 'text-green-500'}`}>
-                            {isMaskedMan ? "Suspect" : "Citizen"}
+                            {isMaskedMan ? "Spy" : "Agent"}
                         </p>
                     </div>
                     <div className="text-gray-400 text-xs font-mono border-l border-r border-white/10 px-4 mx-2 text-center">

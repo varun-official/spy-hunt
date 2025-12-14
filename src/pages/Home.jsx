@@ -56,7 +56,7 @@ function Home() {
                     >
                         <Gamepad2 size={48} className="text-white" />
                     </motion.div>
-                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-indigo-200 mb-2">Suspect</h1>
+                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-indigo-200 mb-2">Spy Hunt</h1>
                     <p className="text-slate-400">Find the imposter among your friends</p>
                 </div>
 
