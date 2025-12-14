@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { resetToLobby } from "../services/gameService";
+import { leaveRoom } from "../services/roomService";
 import { motion } from 'framer-motion';
 import { Trophy, Home, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react';
 
@@ -9,14 +11,38 @@ function Results() {
     const { roomId } = useParams();
     const navigate = useNavigate();
     const [room, setRoom] = useState(null);
+    const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
+    // Auth Subscription
     useEffect(() => {
-        const fetchRoom = async () => {
-            const snap = await getDoc(doc(db, "rooms", roomId));
-            if (snap.exists()) setRoom(snap.data());
-        };
-        fetchRoom();
-    }, [roomId]);
+        const unsubAuth = auth.onAuthStateChanged(user => {
+            if (user) setCurrentUser(user);
+            else navigate('/');
+        });
+        return () => unsubAuth();
+    }, [navigate]);
+
+    // Room Subscription (Real-time)
+    useEffect(() => {
+        if (!roomId) return;
+        const roomRef = doc(db, "rooms", roomId);
+        const unsubscribe = onSnapshot(roomRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setRoom(data);
+
+                // Redirect if game restarts
+                if (data.status === 'reveal') {
+                    navigate(`/game/${roomId}`);
+                } else if (data.status === 'lobby') {
+                    navigate(`/lobby/${roomId}`);
+                }
+            } else {
+                navigate('/');
+            }
+        });
+        return () => unsubscribe();
+    }, [roomId, navigate]);
 
     if (!room || !room.result) return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -28,6 +54,23 @@ function Results() {
     const maskedManName = room.players[maskedManId]?.displayName || "Unknown";
     const exiledName = room.players[exiledId]?.displayName || "None";
     const citizensWon = winner === 'CITIZENS';
+    const isHost = room.hostId === currentUser?.uid;
+    const playerCount = Object.keys(room.players || {}).length;
+
+    const handlePlayAgain = async () => {
+        try {
+            await resetToLobby(roomId);
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
+    const handleLeave = async () => {
+        if (room && currentUser) {
+            await leaveRoom(roomId, currentUser.uid);
+        }
+        navigate('/');
+    };
 
     return (
         <div className="min-h-screen bg-slate-900 p-4 flex flex-col items-center justify-center overflow-hidden relative">
@@ -91,12 +134,20 @@ function Results() {
 
                 <div className="grid grid-cols-1 gap-3">
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={handlePlayAgain}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/30 transition-all active:scale-95 flex items-center justify-center mb-2"
+                    >
+                        <span className="flex items-center">
+                            Play Again (Return to Lobby)
+                        </span>
+                    </button>
+
+                    <button
+                        onClick={handleLeave}
                         className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center"
                     >
                         <Home className="mr-2" size={20} /> Back to Home
                     </button>
-                    {/* Could add Play Again button here if RoomService supported reset */}
                 </div>
             </motion.div>
         </div>

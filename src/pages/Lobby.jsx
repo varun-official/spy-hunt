@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "../firebase";
+import { startGame } from "../services/gameService";
+import { leaveRoom } from "../services/roomService";
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Copy, Crown, ArrowLeft, Play, AlertCircle } from 'lucide-react';
+import { Users, Play, Copy, ArrowLeft, Crown, AlertCircle } from 'lucide-react';
 
 function Lobby() {
     const { roomId } = useParams();
@@ -13,27 +15,47 @@ function Lobby() {
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
+        const unsubAuth = auth.onAuthStateChanged(user => {
+            if (user) setCurrentUser(user);
+            else navigate('/');
+        });
+        return () => unsubAuth();
+    }, [navigate]);
+
+    useEffect(() => {
         if (!roomId) return;
         const roomRef = doc(db, "rooms", roomId);
         const unsubscribe = onSnapshot(roomRef, (doc) => {
             if (doc.exists()) {
                 const data = doc.data();
                 setRoom(data);
-                if (data.status !== 'lobby') {
-                    navigate(`/game/${roomId}`);
+
+                // Navigation Logic
+                if (data.status === 'reveal') {
+                    navigate('/game/' + roomId);
                 }
+
+                // If I was kicked (player list update), redirect home
+                if (currentUser && data.players && !data.players[currentUser.uid]) {
+                    navigate('/');
+                }
+
             } else {
-                alert("Room not found");
                 navigate('/');
             }
         });
         return () => unsubscribe();
-    }, [roomId, navigate]);
+    }, [roomId, navigate, currentUser]);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(roomId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const handleStartGame = async () => {
         if (!isHost) return;
         try {
-            const { startGame } = await import('../services/gameService');
             await startGame(roomId, room.players);
         } catch (error) {
             console.error("Failed to start game:", error);
@@ -41,10 +63,11 @@ function Lobby() {
         }
     };
 
-    const copyCode = () => {
-        navigator.clipboard.writeText(roomId);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleLeave = async () => {
+        if (room && currentUser) {
+            await leaveRoom(roomId, currentUser.uid);
+        }
+        navigate('/');
     };
 
     if (!room) return (
@@ -62,19 +85,25 @@ function Lobby() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />
 
-            <div className="max-w-2xl mx-auto relative z-10">
+            {/* Header */}
+            <header className="flex items-center justify-between mb-8">
                 <button
-                    onClick={() => navigate('/')}
-                    className="flex items-center text-slate-400 hover:text-white mb-6 transition-colors"
+                    onClick={handleLeave}
+                    className="p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors"
                 >
-                    <ArrowLeft size={20} className="mr-2" />
-                    Back to Home
+                    <ArrowLeft size={24} />
                 </button>
+                <div className="bg-indigo-600/20 px-4 py-1 rounded-full border border-indigo-500/30">
+                    <span className="text-indigo-300 text-sm font-bold uppercase tracking-wider">Lobby</span>
+                </div>
+                <div className="w-10"></div> {/* Spacer */}
+            </header>
 
+            <div className="max-w-2xl mx-auto relative z-10">
                 <div className="text-center mb-8">
                     <p className="text-slate-400 uppercase tracking-wider text-xs font-bold mb-2">Room Code</p>
                     <div
-                        onClick={copyCode}
+                        onClick={handleCopy}
                         className="inline-flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl px-8 py-4 cursor-pointer hover:bg-white/10 transition-all group"
                     >
                         <span className="text-5xl font-mono font-bold tracking-[0.2em] text-white mr-4">{roomId}</span>
@@ -125,8 +154,8 @@ function Lobby() {
                             onClick={handleStartGame}
                             disabled={players.length < 3}
                             className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl shadow-indigo-900/50 flex items-center justify-center transition-all ${players.length >= 3
-                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:scale-[1.02] active:scale-[0.98]'
-                                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:scale-[1.02] active:scale-[0.98]'
+                                : 'bg-slate-700 text-slate-400 cursor-not-allowed'
                                 }`}
                         >
                             {players.length >= 3 ? (

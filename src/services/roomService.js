@@ -1,46 +1,35 @@
 import { db } from "../firebase";
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteField, increment } from "firebase/firestore";
 
 // Generate a random 4-letter code
 const generateRoomCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let code = '';
-    for (let i = 0; i < 4; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    return Math.random().toString(36).substring(2, 6).toUpperCase();
+};
+
+export const createRoom = async (host, hostName) => {
+    const code = generateRoomCode();
+    const roomRef = doc(db, "rooms", code);
+
+    await setDoc(roomRef, {
+        code,
+        hostId: host.uid,
+        status: 'lobby',
+        players: {
+            [host.uid]: {
+                uid: host.uid,
+                displayName: hostName,
+                isReady: false,
+                avatar: null
+            }
+        },
+        createdAt: new Date()
+    });
+
     return code;
 };
 
-export const createRoom = async (user) => {
-    const code = generateRoomCode();
-    const roomId = code; // Using code as ID for simplicity, or we can use auto-ID and store code field
-
-    // Check if room exists (unlikely with random code but possible) - skip for simplicity in MVP
-    // For production, we should check existence loop.
-
-    const roomRef = doc(db, "rooms", roomId);
-
-    const initialData = {
-        code: roomId,
-        status: 'lobby',
-        hostId: user.uid,
-        createdAt: serverTimestamp(),
-        players: {
-            [user.uid]: {
-                uid: user.uid,
-                displayName: user.displayName || "Player",
-                isReady: false,
-                score: 0
-            }
-        }
-    };
-
-    await setDoc(roomRef, initialData);
-    return roomId;
-};
-
-export const joinRoom = async (roomId, user) => {
-    const roomRef = doc(db, "rooms", roomId);
+export const joinRoom = async (code, user, userName) => {
+    const roomRef = doc(db, "rooms", code);
     const roomSnap = await getDoc(roomRef);
 
     if (!roomSnap.exists()) {
@@ -48,22 +37,74 @@ export const joinRoom = async (roomId, user) => {
     }
 
     const roomData = roomSnap.data();
-    if (roomData.status !== 'lobby') {
-        // Create allowance for reconnecting players? 
-        // For now, restrict joining running games unless already in player list
-        if (!roomData.players[user.uid]) {
-            throw new Error("Game already started");
+
+    // Check if player is already in room or if we should add them
+    if (roomData.players && roomData.players[user.uid]) {
+        // Rejoining / Updating name
+        await updateDoc(roomRef, {
+            [`players.${user.uid}.displayName`]: userName
+        });
+    } else {
+        await updateDoc(roomRef, {
+            [`players.${user.uid}`]: {
+                uid: user.uid,
+                displayName: userName,
+                isReady: false,
+                avatar: null
+            }
+        });
+    }
+
+    return code;
+};
+
+export const leaveRoom = async (roomId, userId) => {
+    const roomRef = doc(db, "rooms", roomId);
+
+    // Transaction is safer, but standard read-write for MVP
+    const roomSnap = await getDoc(roomRef);
+    if (!roomSnap.exists()) return;
+
+    const roomData = roomSnap.data();
+    const players = roomData.players || {};
+    const isHost = roomData.hostId === userId;
+    const turnOrder = roomData.turnOrder || [];
+    const currentTurnIndex = roomData.currentTurnIndex || 0;
+
+    const remainingPlayers = Object.keys(players).filter(pid => pid !== userId);
+
+    const updates = {
+        [`players.${userId}`]: deleteField()
+    };
+
+    if (isHost && remainingPlayers.length > 0) {
+        updates.hostId = remainingPlayers[0];
+    }
+
+    // Cleanup Turn Order if game is active
+    if (turnOrder.length > 0) {
+        const leaverIndex = turnOrder.indexOf(userId);
+        if (leaverIndex !== -1) {
+            const newTurnOrder = turnOrder.filter(id => id !== userId);
+            updates.turnOrder = newTurnOrder;
+
+            // If the leaver was BEFORE the current turn, we must shift index back one
+            // to keep the pointer on the correct *relative* player.
+            // If leaver was current (index == leaver), the pointer stays same 
+            // but now points to the *next* person (who slid into this slot). Correct.
+            if (leaverIndex < currentTurnIndex) {
+                updates.currentTurnIndex = increment(-1);
+            }
+
+            // Note: If leaver was the LAST person and it was their turn?
+            // Index would be at end. Array shrinks. Index now out of bounds?
+            // Game.jsx uses modulo: index % length.
+            // So if Length 4, Index 3 (User D). D leaves.
+            // Length 3. Index 3.
+            // 3 % 3 = 0. User A.
+            // This is arguably correct (loop over).
         }
     }
 
-    await updateDoc(roomRef, {
-        [`players.${user.uid}`]: {
-            uid: user.uid,
-            displayName: user.displayName || "Player",
-            isReady: false, // Reset ready status on join? Or Keep?
-            score: roomData.players[user.uid]?.score || 0
-        }
-    });
-
-    return roomId;
+    await updateDoc(roomRef, updates);
 };

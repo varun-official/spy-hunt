@@ -16,7 +16,7 @@ function Home() {
         if (!name.trim()) return setError('Please enter your name');
         try {
             const user = await signInUser(name);
-            const roomId = await createRoom(user);
+            const roomId = await createRoom(user, name);
             navigate(`/lobby/${roomId}`);
         } catch (err) {
             setError('Failed to create room');
@@ -29,7 +29,7 @@ function Home() {
         if (!joinCode.trim()) return setError('Please enter room code');
         try {
             const user = await signInUser(name);
-            await joinRoom(joinCode.toUpperCase(), user);
+            await joinRoom(joinCode.toUpperCase(), user, name);
             navigate(`/lobby/${joinCode.toUpperCase()}`);
         } catch (err) {
             setError(err.message);

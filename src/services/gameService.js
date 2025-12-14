@@ -153,3 +153,17 @@ export const calculateResults = async (roomId, roomState) => {
         }
     });
 };
+
+export const resetToLobby = async (roomId) => {
+    const roomRef = doc(db, "rooms", roomId);
+    await updateDoc(roomRef, {
+        status: 'lobby',
+        maskedManId: null,
+        secretWord: null,
+        votes: {},
+        readyToVote: {},
+        phaseEndTime: null,
+        currentTurnIndex: 0
+        // We keep players
+    });
+};

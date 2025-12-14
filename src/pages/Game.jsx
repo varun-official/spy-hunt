@@ -171,6 +171,10 @@ function Game() {
                             {isMaskedMan ? "Suspect" : "Citizen"}
                         </p>
                     </div>
+                    <div className="text-gray-400 text-xs font-mono border-l border-r border-white/10 px-4 mx-2 text-center">
+                        <p className="uppercase font-bold mb-1">Round</p>
+                        <p className="text-xl text-white font-bold">{Math.floor(room.currentTurnIndex / turnLength) + 1}</p>
+                    </div>
                     <div className="text-right">
                         <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
                             {isMaskedMan ? "Target" : "Secret Word"}
