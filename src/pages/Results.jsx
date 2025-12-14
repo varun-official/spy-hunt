@@ -75,7 +75,7 @@ function Results() {
     return (
         <div className="min-h-screen bg-slate-900 p-4 flex flex-col items-center justify-center overflow-hidden relative">
             {/* Background Gradients */}
-            <div className={`absolute top-0 w-full h-full opacity-20 ${citizensWon ? 'bg-gradient-to-b from-green-500/30 to-slate-900' : 'bg-gradient-to-b from-red-500/30 to-slate-900'
+            <div className={`absolute top-0 w-full h-full opacity-20 ${agentsWon ? 'bg-gradient-to-b from-green-500/30 to-slate-900' : 'bg-gradient-to-b from-red-500/30 to-slate-900'
                 }`} />
 
             <motion.div
