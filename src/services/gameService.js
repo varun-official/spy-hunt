@@ -65,7 +65,164 @@ export const startGame = async (roomId, players, lastMaskedManId = null) => {
     });
 };
 
-// ... (other functions)
+export const nextTurn = async (roomId, roomState) => {
+    const { turnOrder, currentTurnIndex, status } = roomState;
+    const roomRef = doc(db, "rooms", roomId);
+
+    // If starting from reveal phase
+    if (status === 'reveal') {
+        const nextTime = new Date();
+        nextTime.setSeconds(nextTime.getSeconds() + 30);
+
+        await updateDoc(roomRef, {
+            status: 'clue',
+            phaseEndTime: nextTime,
+            currentTurnIndex: 0
+        });
+        return;
+    }
+
+    // Determine next turn
+    const nextIndex = currentTurnIndex + 1;
+
+    // Endless rounds until players vote to stop
+    const nextTime = new Date();
+    nextTime.setSeconds(nextTime.getSeconds() + 30); // 30s per turn
+
+    await updateDoc(roomRef, {
+        currentTurnIndex: nextIndex,
+        phaseEndTime: nextTime
+    });
+};
+
+export const toggleVoteReadiness = async (roomId, uid, currentReadyState, roomState) => {
+    const roomRef = doc(db, "rooms", roomId);
+    const newState = !currentReadyState;
+
+    // Optimistic check for threshold
+    // We need to read the latest state ideally, but we have `roomState` passed from UI.
+    // However, concurrent writes might be an issue. For MVP, we trust `roomState` + local change.
+
+    const readyMap = { ...roomState.readyToVote, [uid]: newState };
+    const readyCount = Object.values(readyMap).filter(v => v).length;
+    const totalPlayers = Object.keys(roomState.players).length;
+
+    const updates = {
+        [`readyToVote.${uid}`]: newState
+    };
+
+    // Check threshold (2/3)
+    if (readyCount >= Math.ceil(totalPlayers * 2 / 3)) {
+        updates.status = 'voting';
+        updates.phaseEndTime = null;
+    }
+
+    await updateDoc(roomRef, updates);
+};
+
+export const castVote = async (roomId, voterId, targetId) => {
+    const roomRef = doc(db, "rooms", roomId);
+    // Use dot notation to update nested map
+    await updateDoc(roomRef, {
+        [`votes.${voterId}`]: targetId
+    });
+
+    // Check if everyone voted via Cloud Function trgger usually?
+    // Here we can check client side or let the LAST voter trigger 'results'.
+    // Or Host triggers. "Voting Phase... Silent voting".
+    // Better: Transaction or just allow Host/Any client to check.
+    // I'll leave it to the UI (Host) or a periodic check to transition if votes.length == players.length
+
+    // Actually, I can check inside this function:
+    // But I don't have the current room state here easily without reading it.
+    // I will read it to check (costly?) or just trigger "finalize" if sufficient.
+};
+
+export const checkVoteCompletion = async (roomId, roomState) => {
+    // Helper to be called by Host's effect
+    const totalPlayers = Object.keys(roomState.players).length;
+    const totalVotes = Object.keys(roomState.votes || {}).length;
+
+    if (totalVotes >= totalPlayers) {
+        await calculateResults(roomId, roomState);
+    }
+};
+
+export const calculateResults = async (roomId, roomState) => {
+    const votes = roomState.votes;
+    const voteCounts = {};
+
+    Object.values(votes).forEach(targetId => {
+        voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
+    });
+
+    // Find max
+    // Find max with Draw handling
+    let maxVotes = 0;
+    let possibleExiles = [];
+
+    for (const [uid, count] of Object.entries(voteCounts)) {
+        if (count > maxVotes) {
+            maxVotes = count;
+            possibleExiles = [uid];
+        } else if (count === maxVotes) {
+            possibleExiles.push(uid);
+        }
+    }
+
+    // "Draw (tie for highest votes) | Spy wins"
+    // If multiple people have maxVotes -> Draw -> No one exiled -> Spy Wins
+    let exiledId = null;
+    if (possibleExiles.length === 1) {
+        exiledId = possibleExiles[0];
+    } else {
+        // DRAW occured
+        exiledId = null;
+    }
+
+    const isMaskedManFound = exiledId === roomState.maskedManId;
+    const winner = isMaskedManFound ? 'AGENTS' : 'SPY';
+
+    const updates = {
+        status: 'results',
+        result: {
+            winner,
+            exiledId,
+            maskedManId: roomState.maskedManId,
+            secretWord: roomState.secretWord
+        }
+    };
+
+    // Calculate Scores
+    const players = roomState.players;
+    const totalPlayers = Object.keys(players).length;
+    const agentCount = totalPlayers - 1; // Assuming 1 Spy
+    const spyWinPoints = agentCount * 10;
+
+    Object.keys(players).forEach(uid => {
+        const isSpy = uid === roomState.maskedManId;
+        const currentScore = players[uid].score || 0;
+        let pointsToAdd = 0;
+
+        if (winner === 'AGENTS') {
+            if (!isSpy) pointsToAdd = 10;
+        } else {
+            // SPY wins
+            if (isSpy) pointsToAdd = spyWinPoints;
+        }
+
+        if (pointsToAdd > 0) {
+            updates[`players.${uid}.score`] = currentScore + pointsToAdd;
+        } else {
+            // Ensure score field exists if it wasn't there
+            if (players[uid].score === undefined) {
+                updates[`players.${uid}.score`] = currentScore;
+            }
+        }
+    });
+
+    await updateDoc(doc(db, "rooms", roomId), updates);
+};
 
 export const resetToLobby = async (roomId, lastMaskedManId) => {
     const roomRef = doc(db, "rooms", roomId);
