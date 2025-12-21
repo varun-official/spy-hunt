@@ -6,6 +6,7 @@ import { startGame } from "../services/gameService";
 import { leaveRoom } from "../services/roomService";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Play, Copy, ArrowLeft, Crown, AlertCircle } from 'lucide-react';
+import { soundService } from '../services/soundService';
 
 function Lobby() {
     const { roomId } = useParams();
@@ -59,6 +60,7 @@ function Lobby() {
         if (!isHost) return;
         try {
             setLoading(true);
+            soundService.playGameStart();
             await startGame(roomId, room.players, room.lastMaskedManId); // Pass last spy ID
         } catch (err) {
             setError(err.message);

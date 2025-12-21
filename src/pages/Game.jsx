@@ -6,8 +6,10 @@ import { db, auth } from "../firebase";
 import { nextTurn, castVote, calculateResults, checkVoteCompletion, toggleVoteReadiness } from '../services/gameService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Eye, EyeOff, Mic, Flag, CheckCircle, AlertTriangle, Fingerprint } from 'lucide-react';
+import { soundService } from '../services/soundService';
 
 function Game() {
+    // ...
     const { roomId } = useParams();
     const navigate = useNavigate();
     const [room, setRoom] = useState(null);
@@ -56,8 +58,10 @@ function Game() {
             setTimeLeft(diff > 0 ? diff : 0);
 
             // Haptic & Visual Feedback for Low Time
-            if (diff <= 5 && diff > 0) {
-                if (navigator.vibrate) navigator.vibrate(200);
+            if (diff <= 10 && diff > 0) {
+                soundService.playTick();
+                if (diff <= 5 && navigator.vibrate) navigator.vibrate(200);
+                if (diff <= 5) soundService.playAlert();
             }
 
             if (diff <= 0 && room.hostId === currentUser.uid && room.status === 'clue') {
@@ -282,6 +286,7 @@ function Game() {
 
         const handleVote = () => {
             if (selectedVoteTarget) {
+                soundService.playClick();
                 castVote(roomId, currentUser.uid, selectedVoteTarget);
                 setSelectedVoteTarget(null);
             }

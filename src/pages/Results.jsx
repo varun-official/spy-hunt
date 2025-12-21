@@ -1,19 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot } from "firebase/firestore";
-import { db, auth } from "../firebase";
-import { resetToLobby } from "../services/gameService";
-import { leaveRoom } from "../services/roomService";
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Home, AlertTriangle, CheckCircle, HelpCircle, ChevronDown } from 'lucide-react';
-
+import { useState, useEffect, useRef } from 'react';
+// ...
 function Results() {
     const { roomId } = useParams();
     const navigate = useNavigate();
     const [room, setRoom] = useState(null);
     const [currentUser, setCurrentUser] = useState(auth.currentUser);
     const [activeTab, setActiveTab] = useState('report');
-    const [showVotes, setShowVotes] = useState(false); // 'report' or 'leaderboard'
+    const [showVotes, setShowVotes] = useState(false);
+    const soundPlayed = useRef(false);
 
     // Auth Subscription
     useEffect(() => {
@@ -39,12 +33,29 @@ function Results() {
                 } else if (data.status === 'lobby') {
                     navigate(`/lobby/${roomId}`);
                 }
+
+                // Play Result Sound
+                if (data.status === 'results' && currentUser && !soundPlayed.current) {
+                    const amISpy = data.maskedManId === currentUser.uid;
+                    const didAgentsWin = data.result?.winner === 'AGENTS';
+                    const didSpyWin = data.result?.winner === 'SPY';
+                    const iWon = (amISpy && didSpyWin) || (!amISpy && didAgentsWin);
+
+                    if (iWon) {
+                        soundService.playGameStart(); // Happy sound
+                    } else {
+                        soundService.playFailure();
+                    }
+                    soundPlayed.current = true;
+                } else if (data.status !== 'results') {
+                    soundPlayed.current = false;
+                }
             } else {
                 navigate('/');
             }
         });
         return () => unsubscribe();
-    }, [roomId, navigate]);
+    }, [roomId, navigate]); // Effect runs on mount/updates
 
     if (!room || !room.result) return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
