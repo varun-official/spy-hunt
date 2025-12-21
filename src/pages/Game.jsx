@@ -194,9 +194,11 @@ function Game() {
                 {/* Info Bar */}
                 <div className="bg-slate-800/80 backdrop-blur-md rounded-2xl p-4 mb-6 border border-white/5 shadow-lg flex items-center justify-between">
                     <div>
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Your Identity</p>
-                        <p className={`font-black uppercase ${isMaskedMan ? 'text-red-500' : 'text-green-500'}`}>
-                            {isMaskedMan ? "Spy" : "Agent"}
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
+                            {isMaskedMan ? "Target" : "Secret Word"}
+                        </p>
+                        <p className="font-bold text-white bg-white/10 px-3 py-1 rounded-lg inline-block">
+                            {isMaskedMan ? "???" : room.secretWord}
                         </p>
                     </div>
                     <div className="text-gray-400 text-xs font-mono border-l border-r border-white/10 px-4 mx-2 text-center">
@@ -204,11 +206,9 @@ function Game() {
                         <p className="text-xl text-white font-bold">{Math.floor(room.currentTurnIndex / turnLength) + 1}</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">
-                            {isMaskedMan ? "Target" : "Secret Word"}
-                        </p>
-                        <p className="font-bold text-white bg-white/10 px-3 py-1 rounded-lg inline-block">
-                            {isMaskedMan ? "???" : room.secretWord}
+                        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Your Identity</p>
+                        <p className={`font-black uppercase ${isMaskedMan ? 'text-red-500' : 'text-green-500'}`}>
+                            {isMaskedMan ? "Spy" : "Agent"}
                         </p>
                     </div>
                 </div>

@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-// ...
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { resetToLobby } from "../services/gameService";
+import { leaveRoom } from "../services/roomService";
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Home, AlertTriangle, CheckCircle, HelpCircle, ChevronDown } from 'lucide-react';
+import { soundService } from '../services/soundService';
 function Results() {
     const { roomId } = useParams();
     const navigate = useNavigate();
